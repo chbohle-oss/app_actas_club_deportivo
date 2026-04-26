@@ -1,0 +1,340 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============== ENUMS ==============
+
+enum RolSistema {
+  ADMIN
+  SECRETARIO
+  MIEMBRO
+}
+
+enum EstadoMiembro {
+  ACTIVO
+  INACTIVO
+}
+
+enum RsvpEstado {
+  PENDIENTE
+  ACEPTO
+  RECHAZO
+  TAL_VEZ
+}
+
+enum EstadoReunion {
+  PROGRAMADA
+  EN_CURSO
+  FINALIZADA
+  CANCELADA
+}
+
+enum EstadoActa {
+  BORRADOR
+  EN_REVISION
+  APROBADA
+  RECHAZADA
+}
+
+enum EstadoAcuerdo {
+  PENDIENTE
+  EN_CURSO
+  HECHO
+}
+
+enum DecisionAprobacion {
+  APRUEBA
+  RECHAZA
+}
+
+enum CanalNotificacion {
+  PUSH
+  EMAIL
+  WHATSAPP
+}
+
+enum EstadoNotificacion {
+  ENVIADA
+  ENTREGADA
+  FALLIDA
+}
+
+// ============== MODELS ==============
+
+model Club {
+  id              String   @id @default(uuid())
+  nombre          String
+  descripcion     String?
+  logoUrl         String?
+  configuracion   Json     @default("{}")  // plantilla_acta, umbral_aprobacion, etc.
+  creadoEn        DateTime @default(now())
+  actualizadoEn   DateTime @updatedAt
+
+  miembros        MiembroClub[]
+  reuniones       Reunion[]
+  actas           Acta[]
+
+  @@map("clubs")
+}
+
+model Usuario {
+  id              String      @id @default(uuid())
+  nombre          String
+  email           String      @unique
+  telefono        String?
+  passwordHash    String
+  rol             RolSistema  @default(MIEMBRO)
+  avatarUrl       String?
+  activo          Boolean     @default(true)
+  creadoEn        DateTime    @default(now())
+  actualizadoEn   DateTime    @updatedAt
+
+  clubes          MiembroClub[]
+  reunionesCreadas Reunion[]   @relation("ReunionCreador")
+  convocatorias   Convocado[]
+  actasCreadas    Acta[]       @relation("ActaCreador")
+  asistencias     Asistencia[]
+  acuerdosResponsable Acuerdo[] @relation("AcuerdoResponsable")
+  comentarios     Comentario[]
+  aprobaciones    Aprobacion[]
+  linksCreados    LinkCompartido[] @relation("LinkCreador")
+  notificaciones  NotificacionLog[] @relation("NotificacionDestinatario")
+  auditoriaLogs   AuditoriaLog[]
+
+  @@map("usuarios")
+}
+
+model MiembroClub {
+  id          String        @id @default(uuid())
+  clubId      String
+  usuarioId   String
+  rolClub     RolSistema    @default(MIEMBRO)
+  estado      EstadoMiembro @default(ACTIVO)
+  fechaIngreso DateTime     @default(now())
+
+  club        Club          @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  usuario     Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, usuarioId])
+  @@map("miembros_club")
+}
+
+model Reunion {
+  id          String         @id @default(uuid())
+  clubId      String
+  titulo      String
+  fechaHora   DateTime
+  lugar       String
+  tipo        String         @default("ordinaria") // ordinaria, extraordinaria, urgente
+  agenda      String?        @db.Text
+  estado      EstadoReunion  @default(PROGRAMADA)
+  creadoPor   String
+  creadoEn    DateTime       @default(now())
+  actualizadoEn DateTime     @updatedAt
+
+  club        Club           @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  creador     Usuario        @relation("ReunionCreador", fields: [creadoPor], references: [id])
+  convocados  Convocado[]
+  actas       Acta[]
+
+  @@map("reuniones")
+}
+
+model Convocado {
+  id          String     @id @default(uuid())
+  reunionId   String
+  usuarioId   String
+  rsvpEstado  RsvpEstado @default(PENDIENTE)
+  rsvpFecha   DateTime?
+  notaRsvp    String?
+
+  reunion     Reunion    @relation(fields: [reunionId], references: [id], onDelete: Cascade)
+  usuario     Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([reunionId, usuarioId])
+  @@map("convocados")
+}
+
+model Acta {
+  id            String      @id @default(uuid())
+  clubId        String
+  reunionId     String?
+  numero        Int
+  anio          Int
+  version       Int         @default(1)
+  estado        EstadoActa  @default(BORRADOR)
+  titulo        String
+  contenido     Json?       // Structured content (sections, topics)
+  contenidoHtml String?     @db.Text
+  fechaReunion  DateTime?
+  lugarReunion  String?
+  tipoReunion   String?
+  proximaReunion String?
+  creadoPor     String
+  creadoEn      DateTime    @default(now())
+  actualizadoEn DateTime    @updatedAt
+
+  club          Club        @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  reunion       Reunion?    @relation(fields: [reunionId], references: [id])
+  creador       Usuario     @relation("ActaCreador", fields: [creadoPor], references: [id])
+  asistencias   Asistencia[]
+  acuerdos      Acuerdo[]
+  comentarios   Comentario[]
+  aprobaciones  Aprobacion[]
+  links         LinkCompartido[]
+  adjuntos      Adjunto[]
+
+  @@unique([clubId, numero, anio])
+  @@map("actas")
+}
+
+model Asistencia {
+  id        String   @id @default(uuid())
+  actaId    String
+  usuarioId String
+  presente  Boolean  @default(false)
+  nota      String?
+
+  acta      Acta     @relation(fields: [actaId], references: [id], onDelete: Cascade)
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([actaId, usuarioId])
+  @@map("asistencias")
+}
+
+model Acuerdo {
+  id              String         @id @default(uuid())
+  actaId          String
+  titulo          String
+  descripcion     String?        @db.Text
+  responsableId   String?
+  fechaCompromiso DateTime?
+  estado          EstadoAcuerdo  @default(PENDIENTE)
+  orden           Int            @default(0)
+  creadoEn        DateTime       @default(now())
+  actualizadoEn   DateTime       @updatedAt
+
+  acta            Acta           @relation(fields: [actaId], references: [id], onDelete: Cascade)
+  responsable     Usuario?       @relation("AcuerdoResponsable", fields: [responsableId], references: [id])
+
+  @@map("acuerdos")
+}
+
+model Comentario {
+  id        String   @id @default(uuid())
+  actaId    String
+  seccion   String?  // "acuerdos", "asistentes", "general", etc.
+  texto     String   @db.Text
+  autorId   String
+  resuelto  Boolean  @default(false)
+  parentId  String?  // For threaded comments
+  creadoEn  DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  acta      Acta       @relation(fields: [actaId], references: [id], onDelete: Cascade)
+  autor     Usuario    @relation(fields: [autorId], references: [id])
+  parent    Comentario?  @relation("ComentarioHilo", fields: [parentId], references: [id])
+  respuestas Comentario[] @relation("ComentarioHilo")
+
+  @@map("comentarios")
+}
+
+model Aprobacion {
+  id        String             @id @default(uuid())
+  actaId    String
+  usuarioId String
+  decision  DecisionAprobacion
+  motivo    String?            @db.Text
+  version   Int                // Version of the acta when approval was given
+  fecha     DateTime           @default(now())
+
+  acta      Acta               @relation(fields: [actaId], references: [id], onDelete: Cascade)
+  usuario   Usuario            @relation(fields: [usuarioId], references: [id])
+
+  @@unique([actaId, usuarioId, version])
+  @@map("aprobaciones")
+}
+
+model LinkCompartido {
+  id          String    @id @default(uuid())
+  actaId      String
+  token       String    @unique @default(uuid())
+  expiracion  DateTime?
+  permisos    Json      @default("{\"lectura\": true, \"comentar\": false, \"aprobar\": false}")
+  activo      Boolean   @default(true)
+  creadoPor   String
+  creadoEn    DateTime  @default(now())
+
+  acta        Acta      @relation(fields: [actaId], references: [id], onDelete: Cascade)
+  creador     Usuario   @relation("LinkCreador", fields: [creadoPor], references: [id])
+
+  @@map("links_compartidos")
+}
+
+model Adjunto {
+  id          String   @id @default(uuid())
+  actaId      String
+  nombre      String
+  tipo        String   // MIME type
+  tamano      Int      // bytes
+  url         String
+  creadoEn    DateTime @default(now())
+
+  acta        Acta     @relation(fields: [actaId], references: [id], onDelete: Cascade)
+
+  @@map("adjuntos")
+}
+
+model AuditoriaLog {
+  id          String   @id @default(uuid())
+  entidad     String   // "Acta", "Reunion", "Usuario", etc.
+  entidadId   String
+  accion      String   // "CREAR", "EDITAR", "APROBAR", "RECHAZAR", etc.
+  usuarioId   String?
+  datos       Json?    // Changed data
+  ip          String?
+  fecha       DateTime @default(now())
+
+  usuario     Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([entidad, entidadId])
+  @@index([fecha])
+  @@map("auditoria_logs")
+}
+
+model NotificacionLog {
+  id              String             @id @default(uuid())
+  tipo            String             // "acta_revision", "comentario", "acta_aprobada", etc.
+  canal           CanalNotificacion
+  destinatarioId  String
+  referencia      String?            // ID of related entity
+  titulo          String?
+  mensaje         String?            @db.Text
+  estado          EstadoNotificacion @default(ENVIADA)
+  error           String?
+  fecha           DateTime           @default(now())
+
+  destinatario    Usuario            @relation("NotificacionDestinatario", fields: [destinatarioId], references: [id])
+
+  @@index([destinatarioId, fecha])
+  @@map("notificacion_logs")
+}
+
+model PushSubscription {
+  id             String   @id @default(uuid())
+  usuarioId      String
+  endpoint       String   @db.Text
+  p256dh         String
+  auth           String
+  creadoEn       DateTime @default(now())
+
+  @@map("push_subscriptions")
+}

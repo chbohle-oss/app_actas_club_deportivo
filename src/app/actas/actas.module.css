@@ -1,0 +1,77 @@
+.page { max-width: var(--max-content-width); }
+
+.filters {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.filters .form-group {
+  flex: 1;
+  min-width: 180px;
+}
+
+.filters .form-group:first-child {
+  flex: 2;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.actaCard {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.actaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.actaNumero {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.actaTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-3);
+}
+
+.actaMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.actaStats {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-color);
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 640px) {
+  .filters {
+    flex-direction: column;
+  }
+  .filters .form-group:first-child {
+    flex: 1;
+  }
+}

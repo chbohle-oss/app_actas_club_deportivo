@@ -1,0 +1,49 @@
+.page { max-width: var(--max-content-width); }
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.reunionCard {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.reunionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.reunionTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+}
+
+.reunionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.rsvpSummary {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-color);
+}
+
+.rsvpItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}

@@ -1,0 +1,22 @@
+.wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  padding: var(--space-8);
+  max-width: calc(100vw - var(--sidebar-width));
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .main {
+    margin-left: 0;
+    padding: var(--space-4);
+    padding-bottom: calc(80px + var(--space-4));
+    max-width: 100vw;
+  }
+}
