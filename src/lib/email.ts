@@ -94,3 +94,30 @@ export function emailActaAprobada(nombre: string, actaTitulo: string, actaUrl: s
     `,
   };
 }
+
+export function emailInvitacionClub(nombre: string, clubNombre: string, loginUrl: string): EmailOptions {
+  return {
+    to: '',
+    subject: `🏀 ¡Has sido invitado a ${clubNombre}!`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a1a; color: #f0f0f5; padding: 32px; border-radius: 12px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #f97316; margin: 0;">🏀 ActasClub Basket</h1>
+        </div>
+        <p>Hola <strong>${nombre}</strong>,</p>
+        <p>Has sido invitado a formar parte de <strong>${clubNombre}</strong> en nuestra plataforma de gestión de actas.</p>
+        <div style="background: #16163a; padding: 16px; border-radius: 8px; border-left: 3px solid #f97316; margin: 16px 0;">
+          <p style="margin: 0;">Desde ahora podrás revisar actas, participar en votaciones y estar al tanto de todos los acuerdos del club.</p>
+        </div>
+        <p>
+          <a href="${loginUrl}" style="display: inline-block; background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+            🚀 Acceder a mi Club
+          </a>
+        </p>
+        <p style="color: #9ca3af; font-size: 12px; margin-top: 32px;">
+          Si ya tienes una cuenta, puedes entrar con tus credenciales habituales. Si eres nuevo, pronto recibirás instrucciones para configurar tu contraseña.
+        </p>
+      </div>
+    `,
+  };
+}

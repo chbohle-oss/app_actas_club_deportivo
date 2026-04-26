@@ -20,6 +20,10 @@ export default function MiembrosPage() {
   const { token } = useAuth();
   const [miembros, setMiembros] = useState<Miembro[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteData, setInviteData] = useState({ nombre: '', email: '', rolClub: 'MIEMBRO' });
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const fetchMiembros = useCallback(async () => {
     if (!token) return;
@@ -40,6 +44,39 @@ export default function MiembrosPage() {
 
   useEffect(() => { fetchMiembros(); }, [fetchMiembros]);
 
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    setSubmitting(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch('/api/miembros', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify(inviteData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage({ type: 'success', text: '¡Invitación enviada con éxito!' });
+        setInviteData({ nombre: '', email: '', rolClub: 'MIEMBRO' });
+        setTimeout(() => setShowInviteModal(false), 2000);
+        fetchMiembros();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al enviar invitación.' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Error de conexión.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div style={{ maxWidth: 'var(--max-content-width)' }}>
@@ -48,7 +85,7 @@ export default function MiembrosPage() {
             <h1 className="section-title">👥 Miembros del Club</h1>
             <p className="section-subtitle">Gestión de usuarios y directiva</p>
           </div>
-          <button className="btn btn-primary" disabled>
+          <button className="btn btn-primary" onClick={() => setShowInviteModal(true)}>
             + Invitar Miembro
           </button>
         </div>
@@ -105,7 +142,100 @@ export default function MiembrosPage() {
             </div>
           </div>
         )}
+
+        {/* Modal de Invitación */}
+        {showInviteModal && (
+          <div className="modal-overlay">
+            <div className="modal-content card" style={{ maxWidth: '500px', width: '90%' }}>
+              <div className="modal-header">
+                <h2 className="section-title">📩 Invitar nuevo miembro</h2>
+                <button className="btn-icon" onClick={() => setShowInviteModal(false)}>✕</button>
+              </div>
+              <form onSubmit={handleInvite} className="form-group">
+                <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <label className="form-label">Nombre completo</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    required 
+                    value={inviteData.nombre}
+                    onChange={e => setInviteData({...inviteData, nombre: e.target.value})}
+                    placeholder="Ej. Juan Pérez"
+                  />
+                </div>
+                <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <label className="form-label">Correo electrónico</label>
+                  <input 
+                    type="email" 
+                    className="form-input" 
+                    required 
+                    value={inviteData.email}
+                    onChange={e => setInviteData({...inviteData, email: e.target.value})}
+                    placeholder="correo@ejemplo.com"
+                  />
+                </div>
+                <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <label className="form-label">Rol en el Club</label>
+                  <select 
+                    className="form-input" 
+                    value={inviteData.rolClub}
+                    onChange={e => setInviteData({...inviteData, rolClub: e.target.value})}
+                  >
+                    <option value="MIEMBRO">Miembro</option>
+                    <option value="SECRETARIO">Secretario</option>
+                    <option value="ADMIN">Administrador</option>
+                  </select>
+                </div>
+
+                {message && (
+                  <div className={`badge ${message.type === 'success' ? 'badge-aprobada' : 'badge-rechazada'}`} style={{ width: '100%', marginBottom: 'var(--space-4)', textAlign: 'center' }}>
+                    {message.text}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowInviteModal(false)}>Cancelar</button>
+                  <button type="submit" className="btn btn-primary" disabled={submitting}>
+                    {submitting ? 'Enviando...' : 'Enviar Invitación'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
+      <style jsx>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.7);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+        .modal-content {
+          background: var(--bg-card);
+          padding: var(--space-6);
+        }
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: var(--space-6);
+        }
+        .btn-icon {
+          background: transparent;
+          border: none;
+          color: var(--text-tertiary);
+          font-size: 1.5rem;
+          cursor: pointer;
+        }
+      `}</style>
     </DashboardLayout>
   );
 }

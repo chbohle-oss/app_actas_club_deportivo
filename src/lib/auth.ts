@@ -3,6 +3,10 @@ import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
 
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET debe estar configurado en el entorno de producción.');
+}
+
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'dev-jwt-secret'
 );
@@ -100,6 +104,9 @@ export async function loginUser(email: string, password: string) {
   });
 
   if (!user || !user.activo) {
+    // Prevenir ataques de temporización (timing attacks) realizando una comparación ficticia
+    // El hash es un valor aleatorio válido de bcrypt
+    await comparePasswords(password, "$2a$12$LQv3c1yqBWVHxkd0LpU8uueWQP3uFbdNl7W7W3uFbdNl7W7W3uFbd");
     return { error: 'Credenciales inválidas.', status: 401 };
   }
 
