@@ -20,13 +20,20 @@ function getTransporter() {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
+  console.log(`📧 Intentando enviar correo a: ${options.to} - Asunto: ${options.subject}`);
+  
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('SMTP credentials not configured. Email not sent.');
+    console.warn('❌ ERROR: SMTP credentials not configured. Email not sent.');
+    console.log('Valores actuales:', { 
+      SMTP_USER: process.env.SMTP_USER ? 'Configurado' : 'MISSING', 
+      SMTP_PASS: process.env.SMTP_PASS ? 'Configurado' : 'MISSING' 
+    });
     return { success: false, error: 'SMTP no configurado.' };
   }
 
   try {
     const transporter = getTransporter();
+    console.log('🔌 Conectando con servidor SMTP...');
 
     await transporter.sendMail({
       from: `"ActasClub Basket" <${process.env.EMAIL_FROM || 'no-reply@actasclub.com'}>`,
@@ -36,9 +43,10 @@ export async function sendEmail(options: EmailOptions): Promise<{ success: boole
       text: options.text,
     });
 
+    console.log(`✅ Correo enviado con éxito a: ${options.to}`);
     return { success: true };
   } catch (error) {
-    console.error('Email send error:', error);
+    console.error(`❌ ERROR al enviar correo a ${options.to}:`, error);
     return { success: false, error: 'Error al enviar email.' };
   }
 }
@@ -114,8 +122,31 @@ export function emailInvitacionClub(nombre: string, clubNombre: string, loginUrl
             🚀 Acceder a mi Club
           </a>
         </p>
-        <p style="color: #9ca3af; font-size: 12px; margin-top: 32px;">
-          Si ya tienes una cuenta, puedes entrar con tus credenciales habituales. Si eres nuevo, pronto recibirás instrucciones para configurar tu contraseña.
+      </div>
+    `,
+  };
+}
+
+export function emailNuevaReunion(nombre: string, reunion: { titulo: string, fechaHora: string, lugar: string }, url: string): EmailOptions {
+  return {
+    to: '',
+    subject: `📅 Nueva Reunión Citada: ${reunion.titulo}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0a0a1a; color: #f0f0f5; padding: 32px; border-radius: 12px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #f97316; margin: 0;">🏀 ActasClub Basket</h1>
+        </div>
+        <p>Hola <strong>${nombre}</strong>,</p>
+        <p>Has sido citado a una nueva reunión:</p>
+        <div style="background: #16163a; padding: 16px; border-radius: 8px; border-left: 3px solid #f97316; margin: 16px 0;">
+          <h3 style="margin: 0 0 8px 0; color: #f97316;">${reunion.titulo}</h3>
+          <p style="margin: 4px 0;"><strong>📅 Fecha:</strong> ${new Date(reunion.fechaHora).toLocaleString()}</p>
+          <p style="margin: 4px 0;"><strong>📍 Lugar:</strong> ${reunion.lugar}</p>
+        </div>
+        <p>
+          <a href="${url}" style="display: inline-block; background: #f97316; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+            📅 Ver detalles y confirmar asistencia
+          </a>
         </p>
       </div>
     `,

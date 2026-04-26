@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, requireAuth, requireRole } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { registrarAuditoria } from '@/lib/audit';
+import { sendEmail, emailNuevaReunion } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -113,6 +114,28 @@ export async function POST(request: NextRequest) {
       usuarioId: user!.sub,
       datos: { titulo, fechaHora, lugar },
     });
+
+    // --- ENVIAR CORREOS DE CITACIÓN ---
+    try {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const reunionUrl = `${appUrl}/reuniones/${reunion.id}`;
+
+      // Si hay convocados específicos
+      if (reunion.convocados?.length) {
+        const emailPromises = reunion.convocados.map(convocado => {
+          const emailOpts = emailNuevaReunion(
+            convocado.usuario.nombre,
+            { titulo, fechaHora, lugar },
+            reunionUrl
+          );
+          emailOpts.to = convocado.usuario.email;
+          return sendEmail(emailOpts);
+        });
+        Promise.all(emailPromises).catch(err => console.error('Error sending meeting invitation emails:', err));
+      }
+    } catch (emailErr) {
+      console.error('Error in meeting email notification flow:', emailErr);
+    }
 
     return NextResponse.json(reunion, { status: 201 });
   } catch (error) {

@@ -3,7 +3,7 @@ import { getAuthUser, requireAuth, requireRole } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { registrarAuditoria } from '@/lib/audit';
 import { v4 as uuidv4 } from 'uuid';
-import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import { sendEmail, emailActaRevision } from '@/lib/email';
 
 // POST /api/actas/[id]/enviar-revision — Send acta to review
 export async function POST(
@@ -40,7 +40,7 @@ export async function POST(
 
     // Create shared link with approval permissions
     const token = uuidv4();
-    const link = await prisma.linkCompartido.create({
+    await prisma.linkCompartido.create({
       data: {
         actaId: acta.id,
         token,
@@ -74,20 +74,49 @@ export async function POST(
       datos: { version: newVersion, token },
     });
 
+    // --- ENVIAR CORREOS ---
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const publicLink = `${appUrl}/actas/${acta.id}/publica?token=${token}`;
+
+    let recipients: { nombre: string; email: string }[] = [];
+
+    if (acta.asistencias.length > 0) {
+      // Usar asistentes si existen
+      recipients = acta.asistencias
+        .filter(a => a.usuario?.email)
+        .map(a => ({ nombre: a.usuario!.nombre, email: a.usuario!.email! }));
+    } else {
+      // Si no hay asistentes, enviar a todos los miembros del club
+      const clubMembers = await prisma.miembroClub.findMany({
+        where: { clubId: acta.clubId, estado: 'ACTIVO' },
+        include: { usuario: true }
+      });
+      recipients = clubMembers
+        .filter(m => m.usuario?.email)
+        .map(m => ({ nombre: m.usuario.nombre, email: m.usuario.email }));
+    }
+
+    const emailPromises = recipients.map(recipient => {
+      const emailOpts = emailActaRevision(
+        recipient.nombre,
+        acta.titulo,
+        publicLink
+      );
+      emailOpts.to = recipient.email;
+      return sendEmail(emailOpts);
+    });
+
+    // No bloqueamos el response, pero lanzamos los envíos
+    Promise.all(emailPromises).catch(err => console.error('Error sending revision emails:', err));
+
     return NextResponse.json({
-      message: 'Enlace de revisión generado correctamente.',
-      link: `/actas/${acta.id}/publica?token=${token}`,
+      message: recipients.length > 0 
+        ? `Acta enviada a revisión. Se notificó a ${recipients.length} personas.`
+        : 'Acta enviada a revisión (sin destinatarios para notificar).',
+      link: publicLink,
       token,
       version: newVersion,
     });
-  } catch (error) {
-    console.error('Send to review error:', error);
-    return NextResponse.json(
-      { error: 'Error al enviar a revisión.' },
-      { status: 500 }
-    );
-  }
-}
   } catch (error) {
     console.error('Send to review error:', error);
     return NextResponse.json(

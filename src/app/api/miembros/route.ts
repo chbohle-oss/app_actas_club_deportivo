@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       entidad: 'Club',
       entidadId: user!.clubId,
       accion: 'INVITAR_MIEMBRO',
-      usuarioId: user!.id,
+      usuarioId: user!.sub,
       datos: { invitadoId: targetUser.id, email: targetUser.email }
     });
 
