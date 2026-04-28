@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest) {
       entidad: 'Club',
       entidadId: user!.clubId,
       accion: 'ACTUALIZAR_CONFIGURACION',
-      usuarioId: user!.id,
+      usuarioId: user!.sub,
       datos: { nombre, descripcion, configuracion }
     });
 
