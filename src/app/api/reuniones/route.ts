@@ -117,7 +117,10 @@ export async function POST(request: NextRequest) {
 
     // --- ENVIAR CORREOS DE CITACIÓN ---
     try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      // Detectar URL dinámicamente desde la petición
+      const protocol = request.headers.get('x-forwarded-proto') || 'http';
+      const host = request.headers.get('host');
+      const appUrl = `${protocol}://${host}`;
       const reunionUrl = `${appUrl}/reuniones/${reunion.id}`;
 
       // Si hay convocados específicos

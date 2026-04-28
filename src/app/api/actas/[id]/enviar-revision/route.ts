@@ -75,7 +75,9 @@ export async function POST(
     });
 
     // --- ENVIAR CORREOS ---
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const host = request.headers.get('host');
+    const appUrl = `${protocol}://${host}`;
     const publicLink = `${appUrl}/actas/${acta.id}/publica?token=${token}`;
 
     let recipients: { nombre: string; email: string }[] = [];

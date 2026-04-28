@@ -115,12 +115,13 @@ export async function POST(request: NextRequest) {
       datos: { invitadoId: targetUser.id, email: targetUser.email }
     });
 
-    // 6. Enviar email de invitación
-    try {
+      const protocol = request.headers.get('x-forwarded-proto') || 'http';
+      const host = request.headers.get('host');
+      const appUrl = `${protocol}://${host}`;
       const emailOptions = emailInvitacionClub(
         targetUser.nombre, 
         club?.nombre || 'Club Deportivo', 
-        `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login`
+        `${appUrl}/login`
       );
       emailOptions.to = targetUser.email;
       await sendEmail(emailOptions);
