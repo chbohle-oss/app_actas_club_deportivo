@@ -107,7 +107,7 @@ export async function POST(
     });
 
     // No bloqueamos el response, pero lanzamos los envíos
-    Promise.all(emailPromises).catch(err => console.error('Error sending revision emails:', err));
+    await Promise.all(emailPromises);
 
     return NextResponse.json({
       message: recipients.length > 0 

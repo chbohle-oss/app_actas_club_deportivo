@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
           emailOpts.to = convocado.usuario.email;
           return sendEmail(emailOpts);
         });
-        Promise.all(emailPromises).catch(err => console.error('Error sending meeting invitation emails:', err));
+        await Promise.all(emailPromises);
       }
     } catch (emailErr) {
       console.error('Error in meeting email notification flow:', emailErr);
