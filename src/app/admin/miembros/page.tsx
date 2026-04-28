@@ -25,6 +25,10 @@ export default function MiembrosPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingMiembro, setEditingMiembro] = useState<Miembro | null>(null);
+  const [editData, setEditData] = useState({ nombre: '', email: '', telefono: '', rolClub: '', estado: '' });
+
   const fetchMiembros = useCallback(async () => {
     if (!token) return;
     try {
@@ -77,6 +81,53 @@ export default function MiembrosPage() {
     }
   };
 
+  const openEditModal = (m: Miembro) => {
+    setEditingMiembro(m);
+    setEditData({
+      nombre: m.usuario.nombre,
+      email: m.usuario.email,
+      telefono: m.usuario.telefono || '',
+      rolClub: m.usuario.rol,
+      estado: m.estado
+    });
+    setMessage(null);
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !editingMiembro) return;
+    setSubmitting(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch(`/api/miembros/${editingMiembro.id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify(editData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Miembro actualizado correctamente.' });
+        setTimeout(() => {
+          setShowEditModal(false);
+          fetchMiembros();
+        }, 1500);
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Error al actualizar miembro.' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Error de conexión.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div style={{ maxWidth: 'var(--max-content-width)' }}>
@@ -102,6 +153,7 @@ export default function MiembrosPage() {
                     <th style={{ padding: 'var(--space-4)', fontWeight: '600', fontSize: 'var(--text-sm)' }}>Contacto</th>
                     <th style={{ padding: 'var(--space-4)', fontWeight: '600', fontSize: 'var(--text-sm)' }}>Rol</th>
                     <th style={{ padding: 'var(--space-4)', fontWeight: '600', fontSize: 'var(--text-sm)' }}>Estado</th>
+                    <th style={{ padding: 'var(--space-4)', fontWeight: '600', fontSize: 'var(--text-sm)', textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -134,6 +186,15 @@ export default function MiembrosPage() {
                         <span style={{ color: m.estado === 'ACTIVO' ? 'var(--color-success)' : 'var(--color-danger)' }}>
                           {m.estado === 'ACTIVO' ? '✅ Activo' : '❌ Inactivo'}
                         </span>
+                      </td>
+                      <td style={{ padding: 'var(--space-4)', textAlign: 'right' }}>
+                        <button 
+                          className="btn btn-ghost btn-sm" 
+                          onClick={() => openEditModal(m)}
+                          title="Editar miembro"
+                        >
+                          ✏️
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -197,6 +258,88 @@ export default function MiembrosPage() {
                   <button type="button" className="btn btn-secondary" onClick={() => setShowInviteModal(false)}>Cancelar</button>
                   <button type="submit" className="btn btn-primary" disabled={submitting}>
                     {submitting ? 'Enviando...' : 'Enviar Invitación'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Edición */}
+        {showEditModal && (
+          <div className="modal-overlay">
+            <div className="modal-content card" style={{ maxWidth: '500px', width: '90%' }}>
+              <div className="modal-header">
+                <h2 className="section-title">✏️ Editar miembro</h2>
+                <button className="btn-icon" onClick={() => setShowEditModal(false)}>✕</button>
+              </div>
+              <form onSubmit={handleUpdate} className="form-group">
+                <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <label className="form-label">Nombre completo</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    required 
+                    value={editData.nombre}
+                    onChange={e => setEditData({...editData, nombre: e.target.value})}
+                  />
+                </div>
+                <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <label className="form-label">Correo electrónico</label>
+                  <input 
+                    type="email" 
+                    className="form-input" 
+                    required 
+                    value={editData.email}
+                    onChange={e => setEditData({...editData, email: e.target.value})}
+                  />
+                </div>
+                <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <label className="form-label">Teléfono</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    value={editData.telefono}
+                    onChange={e => setEditData({...editData, telefono: e.target.value})}
+                    placeholder="+56 9 ..."
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+                  <div>
+                    <label className="form-label">Rol</label>
+                    <select 
+                      className="form-input" 
+                      value={editData.rolClub}
+                      onChange={e => setEditData({...editData, rolClub: e.target.value})}
+                    >
+                      <option value="MIEMBRO">Miembro</option>
+                      <option value="SECRETARIO">Secretario</option>
+                      <option value="ADMIN">Administrador</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">Estado</label>
+                    <select 
+                      className="form-input" 
+                      value={editData.estado}
+                      onChange={e => setEditData({...editData, estado: e.target.value})}
+                    >
+                      <option value="ACTIVO">Activo</option>
+                      <option value="INACTIVO">Inactivo</option>
+                    </select>
+                  </div>
+                </div>
+
+                {message && (
+                  <div className={`badge ${message.type === 'success' ? 'badge-aprobada' : 'badge-rechazada'}`} style={{ width: '100%', marginBottom: 'var(--space-4)', textAlign: 'center' }}>
+                    {message.text}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>Cancelar</button>
+                  <button type="submit" className="btn btn-primary" disabled={submitting}>
+                    {submitting ? 'Guardando...' : 'Guardar Cambios'}
                   </button>
                 </div>
               </form>
