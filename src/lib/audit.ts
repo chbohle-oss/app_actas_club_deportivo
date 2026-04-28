@@ -16,9 +16,9 @@ export async function registrarAuditoria(data: AuditData) {
         entidad: data.entidad,
         entidadId: data.entidadId,
         accion: data.accion,
-        usuarioId: data.usuarioId || null,
-        datos: data.datos || null,
-        ip: data.ip || null,
+        usuarioId: data.usuarioId,
+        datos: data.datos,
+        ip: data.ip,
       },
     });
   } catch (error) {
