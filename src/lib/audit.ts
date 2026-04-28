@@ -5,7 +5,7 @@ interface AuditData {
   entidadId: string;
   accion: string;
   usuarioId?: string;
-  datos?: Record<string, unknown>;
+  datos?: any;
   ip?: string;
 }
 
