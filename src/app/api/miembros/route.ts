@@ -115,6 +115,8 @@ export async function POST(request: NextRequest) {
       datos: { invitadoId: targetUser.id, email: targetUser.email }
     });
 
+    // 6. Enviar email de invitación
+    try {
       const protocol = request.headers.get('x-forwarded-proto') || 'http';
       const host = request.headers.get('host');
       const appUrl = `${protocol}://${host}`;
