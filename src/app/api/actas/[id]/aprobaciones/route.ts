@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { registrarAuditoria } from '@/lib/audit';
+import { EstadoActa } from '@prisma/client';
 
 // POST /api/actas/[id]/aprobaciones — approve or reject
 export async function POST(
@@ -96,7 +97,7 @@ export async function POST(
     const rejectionCount = allApprovals.filter(a => a.decision === 'RECHAZA').length;
     const threshold = Math.ceil(totalPresent / 2);
 
-    let newEstado = acta.estado;
+    let newEstado: EstadoActa = acta.estado;
 
     // Check if secretary/admin rejects (auto-reject)
     if (decision === 'RECHAZA' && (user!.rol === 'ADMIN' || user!.rol === 'SECRETARIO')) {
