@@ -36,31 +36,64 @@ export default function NuevaActaPage() {
   const [temas, setTemas] = useState('');
   const [acuerdos, setAcuerdos] = useState<Acuerdo[]>([]);
   const [miembros, setMiembros] = useState<any[]>([]);
+  const [reuniones, setReuniones] = useState<any[]>([]);
+  const [reunionId, setReunionId] = useState('');
   const [asistencias, setAsistencias] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const fetchMiembros = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/miembros', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setMiembros(data.miembros || []);
-          // Inicializar asistencias (todos ausentes por defecto)
+        const [mRes, rRes] = await Promise.all([
+          fetch('/api/miembros', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/reuniones?estado=PROGRAMADA', { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+
+        if (mRes.ok) {
+          const mData = await mRes.json();
+          setMiembros(mData.miembros || []);
           const initial: Record<string, boolean> = {};
-          (data.miembros || []).forEach((m: any) => {
+          (mData.miembros || []).forEach((m: any) => {
             initial[m.usuarioId] = false;
           });
           setAsistencias(initial);
         }
+
+        if (rRes.ok) {
+          const rData = await rRes.json();
+          setReuniones(rData.data || []);
+        }
       } catch (err) {
-        console.error('Error fetching members:', err);
+        console.error('Error fetching data:', err);
       }
     };
 
-    if (token) fetchMiembros();
+    if (token) fetchData();
   }, [token]);
+
+  const handleSelectReunion = (id: string) => {
+    setReunionId(id);
+    if (!id) return;
+
+    const r = reuniones.find(x => x.id === id);
+    if (r) {
+      setForm(prev => ({
+        ...prev,
+        titulo: `Acta: ${r.titulo}`,
+        fechaReunion: r.fechaHora ? new Date(r.fechaHora).toISOString().slice(0, 16) : '',
+        lugarReunion: r.lugar || '',
+        tipoReunion: r.tipo || 'ordinaria'
+      }));
+
+      // Marcar como presentes a los convocados
+      if (r.convocados) {
+        const prefill: Record<string, boolean> = { ...asistencias };
+        r.convocados.forEach((c: any) => {
+          prefill[c.usuarioId] = true;
+        });
+        setAsistencias(prefill);
+      }
+    }
+  };
 
   const toggleAsistencia = (usuarioId: string) => {
     setAsistencias(prev => ({ ...prev, [usuarioId]: !prev[usuarioId] }));
@@ -102,6 +135,7 @@ export default function NuevaActaPage() {
 
     const payload = {
       ...form,
+      reunionId,
       contenido: { temas: temas.split('\n').filter(Boolean) },
       acuerdos: acuerdos.filter(a => a.titulo),
       asistencias: Object.entries(asistencias).map(([usuarioId, presente]) => ({
@@ -185,6 +219,28 @@ export default function NuevaActaPage() {
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
+          {/* Meeting Selection */}
+          <section className="card">
+            <h2 className={styles.sectionTitle}>📅 Vincular con Reunión</h2>
+            <div className="form-group" style={{ marginTop: 'var(--space-4)' }}>
+              <label className="form-label">Seleccionar reunión programada (opcional)</label>
+              <select 
+                className="form-input" 
+                value={reunionId} 
+                onChange={e => handleSelectReunion(e.target.value)}
+                id="select-reunion"
+              >
+                <option value="">-- No vincular o crear libre --</option>
+                {reuniones.map(r => (
+                  <option key={r.id} value={r.id}>
+                    {new Date(r.fechaHora).toLocaleDateString()} - {r.titulo}
+                  </option>
+                ))}
+              </select>
+              <span className="form-helper">Al elegir una reunión, se completarán los datos automáticamente.</span>
+            </div>
+          </section>
+
           {/* Basic info */}
           <section className="card">
             <h2 className={styles.sectionTitle}>📝 Información general</h2>
