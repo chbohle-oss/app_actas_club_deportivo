@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { addOfflineOperation, db } from '@/db/dexie';
 import { v4 as uuidv4 } from 'uuid';
+import { useEffect, useState } from 'react';
 import styles from './nueva-acta.module.css';
 
 interface Acuerdo {
@@ -35,6 +35,36 @@ export default function NuevaActaPage() {
 
   const [temas, setTemas] = useState('');
   const [acuerdos, setAcuerdos] = useState<Acuerdo[]>([]);
+  const [miembros, setMiembros] = useState<any[]>([]);
+  const [asistencias, setAsistencias] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const fetchMiembros = async () => {
+      try {
+        const res = await fetch('/api/miembros', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setMiembros(data.miembros || []);
+          // Inicializar asistencias (todos ausentes por defecto)
+          const initial: Record<string, boolean> = {};
+          (data.miembros || []).forEach((m: any) => {
+            initial[m.usuarioId] = false;
+          });
+          setAsistencias(initial);
+        }
+      } catch (err) {
+        console.error('Error fetching members:', err);
+      }
+    };
+
+    if (token) fetchMiembros();
+  }, [token]);
+
+  const toggleAsistencia = (usuarioId: string) => {
+    setAsistencias(prev => ({ ...prev, [usuarioId]: !prev[usuarioId] }));
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -74,6 +104,10 @@ export default function NuevaActaPage() {
       ...form,
       contenido: { temas: temas.split('\n').filter(Boolean) },
       acuerdos: acuerdos.filter(a => a.titulo),
+      asistencias: Object.entries(asistencias).map(([usuarioId, presente]) => ({
+        usuarioId,
+        presente
+      })),
     };
 
     if (isOnline) {
@@ -206,6 +240,30 @@ export default function NuevaActaPage() {
                 id="input-temas"
               />
               <span className="form-helper">Ingrese un tema por línea</span>
+            </div>
+          </section>
+
+          {/* Attendance */}
+          <section className="card">
+            <h2 className={styles.sectionTitle}>👥 Asistencia</h2>
+            <p className="form-helper" style={{ marginBottom: 'var(--space-3)' }}>Marque los socios que estuvieron presentes en la reunión.</p>
+            <div className={styles.miembrosGrid}>
+              {miembros.map((m) => (
+                <div 
+                  key={m.id} 
+                  className={`${styles.miembroItem} ${asistencias[m.usuarioId] ? styles.presente : ''}`}
+                  onClick={() => toggleAsistencia(m.usuarioId)}
+                >
+                  <div className={styles.checkbox}>
+                    {asistencias[m.usuarioId] ? '✅' : '⬜'}
+                  </div>
+                  <div className={styles.miembroInfo}>
+                    <span className={styles.miembroNombre}>{m.usuario.nombre}</span>
+                    <span className={styles.miembroRol}>{m.rolClub}</span>
+                  </div>
+                </div>
+              ))}
+              {miembros.length === 0 && <p className="form-helper">Cargando socios...</p>}
             </div>
           </section>
 

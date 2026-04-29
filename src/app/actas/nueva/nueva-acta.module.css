@@ -48,3 +48,52 @@
 @media (max-width: 640px) {
   .page { max-width: 100%; }
 }
+
+.miembrosGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.miembroItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.miembroItem:hover {
+  border-color: var(--color-primary);
+  background: var(--bg-input);
+}
+
+.presente {
+  border-color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb, 249, 115, 22), 0.1);
+}
+
+.checkbox {
+  font-size: var(--text-lg);
+}
+
+.miembroInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.miembroNombre {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.miembroRol {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}

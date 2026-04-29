@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { clubId: bodyClubId, reunionId, titulo, contenido, fechaReunion, lugarReunion, tipoReunion } = body;
+    const { clubId: bodyClubId, reunionId, titulo, contenido, fechaReunion, lugarReunion, tipoReunion, asistencias } = body;
 
     const targetClubId = bodyClubId || user!.clubId;
     if (!targetClubId) {
@@ -110,9 +110,22 @@ export async function POST(request: NextRequest) {
         lugarReunion: lugarReunion || null,
         tipoReunion: tipoReunion || null,
         creadoPor: user!.sub,
+        // Create asistencias if provided
+        ...(asistencias && Array.isArray(asistencias) && asistencias.length > 0 && {
+          asistencias: {
+            createMany: {
+              data: asistencias.map((a: { usuarioId: string; presente: boolean; nota?: string }) => ({
+                usuarioId: a.usuarioId,
+                presente: a.presente,
+                nota: a.nota || null,
+              })),
+            },
+          },
+        }),
       },
       include: {
         creador: { select: { id: true, nombre: true } },
+        asistencias: true,
       },
     });
 
