@@ -3,6 +3,7 @@ import { getAuthUser, requireAuth, requireRole } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { registrarAuditoria } from '@/lib/audit';
 import { sendEmail, emailNuevaReunion } from '@/lib/email';
+import { getAppBaseUrl } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,10 +118,8 @@ export async function POST(request: NextRequest) {
 
     // --- ENVIAR CORREOS DE CITACIÓN ---
     try {
-      // Detectar URL dinámicamente desde la petición
-      const protocol = request.headers.get('x-forwarded-proto') || 'http';
-      const host = request.headers.get('host');
-      const appUrl = `${protocol}://${host}`;
+      // Detectar URL dinámicamente desde la utilidad centralizada
+      const appUrl = getAppBaseUrl(request);
       const reunionUrl = `${appUrl}/reuniones/${reunion.id}`;
 
       // Si hay convocados específicos

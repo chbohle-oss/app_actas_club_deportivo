@@ -5,6 +5,8 @@ import { registrarAuditoria } from '@/lib/audit';
 import { v4 as uuidv4 } from 'uuid';
 import { sendEmail, emailActaRevision } from '@/lib/email';
 
+import { getAppBaseUrl } from '@/lib/utils';
+
 // POST /api/actas/[id]/enviar-revision — Send acta to review
 export async function POST(
   request: NextRequest,
@@ -75,10 +77,8 @@ export async function POST(
     });
 
     // --- ENVIAR CORREOS ---
-    const protocol = request.headers.get('x-forwarded-proto') || 'http';
-    const host = request.headers.get('host');
-    const appUrl = `${protocol}://${host}`;
-    const publicLink = `${appUrl}/actas/${acta.id}/publica?token=${token}`;
+    const baseUrl = getAppBaseUrl(request);
+    const publicLink = `${baseUrl}/compartido/${token}`;
 
     let recipients: { nombre: string; email: string }[] = [];
 

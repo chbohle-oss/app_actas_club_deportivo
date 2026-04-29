@@ -3,6 +3,7 @@ import { getAuthUser, requireAuth, requireRole, hashPassword } from '@/lib/auth'
 import { prisma } from '@/lib/prisma';
 import { sendEmail, emailInvitacionClub } from '@/lib/email';
 import { registrarAuditoria } from '@/lib/audit';
+import { getAppBaseUrl } from '@/lib/utils';
 
 // GET /api/miembros — List club members
 export async function GET(request: NextRequest) {
@@ -117,9 +118,7 @@ export async function POST(request: NextRequest) {
 
     // 6. Enviar email de invitación
     try {
-      const protocol = request.headers.get('x-forwarded-proto') || 'http';
-      const host = request.headers.get('host');
-      const appUrl = `${protocol}://${host}`;
+      const appUrl = getAppBaseUrl(request);
       const emailOptions = emailInvitacionClub(
         targetUser.nombre, 
         club?.nombre || 'Club Deportivo', 

@@ -238,10 +238,7 @@ export default function ActaDetailPage({ params }: { params: { id: string } }) {
       return;
     }
 
-    let baseUrl = window.location.origin;
-    if (baseUrl.includes('localhost')) {
-      baseUrl = baseUrl.replace('localhost', '127.0.0.1');
-    }
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
     const urlConf = `${baseUrl}/compartido/${tokenToUse}`;
     
     let msg = `🏀 *ACTA EN REVISIÓN - ActasClub Basket*\n\n`;
