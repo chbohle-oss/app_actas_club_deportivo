@@ -3,7 +3,7 @@ import { getAuthUser, requireAuth, requireRole, hashPassword } from '@/lib/auth'
 import { prisma } from '@/lib/prisma';
 import { sendEmail, emailInvitacionClub } from '@/lib/email';
 import { registrarAuditoria } from '@/lib/audit';
-import { getAppBaseUrl } from '@/lib/utils';
+import { getAppBaseUrl, validarRut } from '@/lib/utils';
 
 // GET /api/miembros — List club members
 export async function GET(request: NextRequest) {
@@ -48,10 +48,14 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { nombre, email, rolClub } = body;
+    const { nombre, email, rolClub, rut } = body;
 
-    if (!nombre || !email) {
-      return NextResponse.json({ error: 'Nombre y email son requeridos.' }, { status: 400 });
+    if (!nombre || !email || !rut) {
+      return NextResponse.json({ error: 'Nombre, email y RUT son requeridos.' }, { status: 400 });
+    }
+
+    if (!validarRut(rut)) {
+      return NextResponse.json({ error: 'El RUT ingresado no es válido.' }, { status: 400 });
     }
 
     // 1. Obtener información del club para el email
@@ -72,6 +76,7 @@ export async function POST(request: NextRequest) {
       
       targetUser = await prisma.usuario.create({
         data: {
+          id: rut.replace(/\./g, '').replace(/-/g, '').toUpperCase(),
           nombre,
           email,
           passwordHash,

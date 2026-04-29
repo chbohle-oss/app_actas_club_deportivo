@@ -2,15 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hashPassword, createToken, createRefreshToken, TokenPayload } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { registrarAuditoria } from '@/lib/audit';
+import { validarRut } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { nombre, email, password, telefono } = body;
+    const { nombre, email, password, telefono, rut } = body;
 
-    if (!nombre || !email || !password) {
+    if (!nombre || !email || !password || !rut) {
       return NextResponse.json(
-        { error: 'Nombre, email y contraseña son requeridos.' },
+        { error: 'Nombre, email, contraseña y RUT son requeridos.' },
+        { status: 400 }
+      );
+    }
+
+    if (!validarRut(rut)) {
+      return NextResponse.json(
+        { error: 'El RUT ingresado no es válido.' },
         { status: 400 }
       );
     }
@@ -35,6 +43,7 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.usuario.create({
       data: {
+        id: rut.replace(/\./g, '').replace(/-/g, '').toUpperCase(), // Guardar RUT limpio como ID
         nombre,
         email,
         telefono: telefono || null,

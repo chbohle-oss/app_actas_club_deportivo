@@ -86,7 +86,7 @@ model Club {
 }
 
 model Usuario {
-  id              String      @id @default(uuid())
+  id              String      @id
   nombre          String
   email           String      @unique
   telefono        String?
