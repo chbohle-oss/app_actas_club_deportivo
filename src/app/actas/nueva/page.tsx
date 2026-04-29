@@ -50,9 +50,10 @@ export default function NuevaActaPage() {
 
         if (mRes.ok) {
           const mData = await mRes.json();
-          setMiembros(mData.miembros || []);
+          const list = mData.data || [];
+          setMiembros(list);
           const initial: Record<string, boolean> = {};
-          (mData.miembros || []).forEach((m: any) => {
+          list.forEach((m: any) => {
             initial[m.usuarioId] = false;
           });
           setAsistencias(initial);
