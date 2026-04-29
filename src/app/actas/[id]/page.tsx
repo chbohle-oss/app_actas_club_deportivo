@@ -19,6 +19,7 @@ interface Acta {
   lugarReunion: string;
   tipoReunion: string;
   proximaReunion?: string;
+  club: { nombre: string };
   creador: { nombre: string };
   acuerdos: Array<{
     id: string; 
@@ -72,7 +73,7 @@ export default function ActaDetailPage({ params }: { params: { id: string } }) {
       // --- HEADER ---
       doc.setFontSize(22);
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(`ActasClub Basket`, 105, 20, { align: 'center' });
+      doc.text(acta.club.nombre, 105, 20, { align: 'center' });
       
       doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
       doc.setLineWidth(0.5);
@@ -105,8 +106,8 @@ export default function ActaDetailPage({ params }: { params: { id: string } }) {
         doc.text('Asistentes:', 14, currentY);
         currentY += 8;
         
-        const presentes = acta.asistencias.filter(a => a.presente).map(a => `✓ ${a.usuario.nombre}`);
-        const ausentes = acta.asistencias.filter(a => !a.presente).map(a => `✗ ${a.usuario.nombre} (Ausente)`);
+        const presentes = acta.asistencias.filter(a => a.presente).map(a => `${a.usuario.nombre} (Presente)`);
+        const ausentes = acta.asistencias.filter(a => !a.presente).map(a => `${a.usuario.nombre} (Ausente)`);
         
         doc.setFontSize(9);
         doc.setTextColor(80, 80, 80);

@@ -15,6 +15,7 @@ export async function GET(
   const acta = await prisma.acta.findUnique({
     where: { id: params.id },
     include: {
+      club: { select: { nombre: true } },
       creador: { select: { id: true, nombre: true, email: true } },
       reunion: {
         select: { id: true, titulo: true, fechaHora: true, lugar: true },
