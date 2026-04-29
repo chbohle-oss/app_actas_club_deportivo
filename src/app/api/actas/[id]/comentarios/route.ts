@@ -79,7 +79,7 @@ export async function POST(
         include: { creador: true, club: true }
       });
 
-      if (acta && acta.creadorId !== user!.sub && acta.creador.email) {
+      if (acta && acta.creadoPor !== user!.sub && acta.creador.email) {
         const baseUrl = getAppBaseUrl(request);
         const actaUrl = `${baseUrl}/actas/${acta.id}`;
         
