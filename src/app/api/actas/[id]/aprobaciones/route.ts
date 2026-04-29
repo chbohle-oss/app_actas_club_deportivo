@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthUser, requireAuth } from '@/lib/auth';
+import { getAuthUser, requireAuth, requireRole } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { registrarAuditoria } from '@/lib/audit';
 import { EstadoActa } from '@prisma/client';
+import { sendEmail, emailActaAprobada } from '@/lib/email';
+import { getAppBaseUrl } from '@/lib/utils';
 
 // POST /api/actas/[id]/aprobaciones — approve or reject
 export async function POST(
@@ -34,7 +36,11 @@ export async function POST(
     const acta = await prisma.acta.findUnique({
       where: { id: params.id },
       include: {
-        asistencias: true,
+        club: true,
+        creador: true,
+        asistencias: {
+          include: { usuario: { select: { id: true, nombre: true, email: true } } },
+        },
         aprobaciones: { where: { version: undefined } },
       },
     });
@@ -114,7 +120,28 @@ export async function POST(
         data: { estado: newEstado },
       });
 
-      // TODO: Send approval/rejection notifications
+      // --- ENVIAR NOTIFICACIONES ---
+      const baseUrl = getAppBaseUrl(request);
+      const actaUrl = `${baseUrl}/actas/${acta.id}`;
+
+      if (newEstado === 'APROBADA') {
+        const recipients = acta.asistencias
+          .filter(a => a.usuario.email)
+          .map(a => ({ nombre: a.usuario.nombre, email: a.usuario.email! }));
+
+        recipients.forEach(r => {
+          sendEmail(emailActaAprobada(r.nombre, acta.titulo, actaUrl)).catch(console.error);
+        });
+      } else if (newEstado === 'RECHAZADA') {
+        // Notify creator
+        if (acta.creador.email) {
+          sendEmail({
+            to: acta.creador.email,
+            subject: `❌ Acta rechazada: ${acta.titulo}`,
+            html: `<p>Hola <strong>${acta.creador.nombre}</strong>,</p><p>El acta ha sido rechazada y requiere ajustes.</p><p><a href="${actaUrl}">Ver acta y motivos</a></p>`
+          }).catch(console.error);
+        }
+      }
     }
 
     await registrarAuditoria({

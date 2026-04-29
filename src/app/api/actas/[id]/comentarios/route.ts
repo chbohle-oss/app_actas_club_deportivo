@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { registrarAuditoria } from '@/lib/audit';
+import { sendEmail } from '@/lib/email';
+import { getAppBaseUrl } from '@/lib/utils';
 
 // GET /api/actas/[id]/comentarios — list comments
 export async function GET(
@@ -70,7 +72,31 @@ export async function POST(
       datos: { actaId: params.id, seccion },
     });
 
-    // TODO: Notify secretary and mentioned users
+    // --- NOTIFICAR ---
+    try {
+      const acta = await prisma.acta.findUnique({
+        where: { id: params.id },
+        include: { creador: true, club: true }
+      });
+
+      if (acta && acta.creadorId !== user!.sub && acta.creador.email) {
+        const baseUrl = getAppBaseUrl(request);
+        const actaUrl = `${baseUrl}/actas/${acta.id}`;
+        
+        await sendEmail({
+          to: acta.creador.email,
+          subject: `💬 Nuevo comentario en: ${acta.titulo}`,
+          html: `
+            <p>Hola <strong>${acta.creador.nombre}</strong>,</p>
+            <p><strong>${user!.nombre}</strong> ha dejado un nuevo comentario en el acta "${acta.titulo}":</p>
+            <blockquote style="background: #f3f4f6; padding: 12px; border-left: 4px solid #f97316;">${comentario.texto}</blockquote>
+            <p><a href="${actaUrl}">Ver comentario y responder</a></p>
+          `
+        });
+      }
+    } catch (notifyErr) {
+      console.error('Notify comment error:', notifyErr);
+    }
 
     return NextResponse.json(comentario, { status: 201 });
   } catch (error) {

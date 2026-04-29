@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendEmail, emailActaAprobada } from '@/lib/email';
+import { getAppBaseUrl } from '@/lib/utils';
 
 // GET /api/compartido/[token] — public acta view
 export async function GET(
@@ -165,6 +167,29 @@ export async function POST(
           where: { id: link.actaId },
           data: { estado: 'APROBADA' }
         });
+
+        // --- NOTIFICAR APROBACIÓN ---
+        try {
+          const baseUrl = getAppBaseUrl(request);
+          const actaUrl = `${baseUrl}/actas/${link.actaId}`;
+          
+          const fullActa = await prisma.acta.findUnique({
+            where: { id: link.actaId },
+            include: { asistencias: { include: { usuario: true } } }
+          });
+
+          if (fullActa) {
+            const recipients = fullActa.asistencias
+              .filter(a => a.usuario.email)
+              .map(a => ({ nombre: a.usuario.nombre, email: a.usuario.email! }));
+
+            recipients.forEach(r => {
+              sendEmail(emailActaAprobada(r.nombre, fullActa.titulo, actaUrl)).catch(console.error);
+            });
+          }
+        } catch (err) {
+          console.error('Notify approval error:', err);
+        }
       }
 
       return NextResponse.json({ success: true, message: 'Firma registrada con éxito.' });
@@ -203,6 +228,32 @@ export async function POST(
           autorId: matchedMember.usuarioId,
         }
       });
+
+      // --- NOTIFICAR COMENTARIO ---
+      try {
+        const acta = await prisma.acta.findUnique({
+          where: { id: link.actaId },
+          include: { creador: true }
+        });
+
+        if (acta && acta.creador.email) {
+          const baseUrl = getAppBaseUrl(request);
+          const actaUrl = `${baseUrl}/actas/${acta.id}`;
+          
+          await sendEmail({
+            to: acta.creador.email,
+            subject: `💬 Nuevo comentario público en: ${acta.titulo}`,
+            html: `
+              <p>Hola <strong>${acta.creador.nombre}</strong>,</p>
+              <p><strong>${nombre}</strong> ha dejado un comentario en el acta "${acta.titulo}" vía enlace público:</p>
+              <blockquote style="background: #f3f4f6; padding: 12px; border-left: 4px solid #f97316;">${texto}</blockquote>
+              <p><a href="${actaUrl}">Ver acta</a></p>
+            `
+          });
+        }
+      } catch (err) {
+        console.error('Notify public comment error:', err);
+      }
 
       return NextResponse.json({ success: true, message: 'Comentario enviado.' });
     }
