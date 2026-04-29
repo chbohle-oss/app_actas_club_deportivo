@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { registrarAuditoria } from '@/lib/audit';
 import { v4 as uuidv4 } from 'uuid';
 import { sendEmail, emailActaRevision } from '@/lib/email';
-
 import { getAppBaseUrl } from '@/lib/utils';
+import { generateActaPDFContent } from '@/lib/pdf';
 
 // POST /api/actas/[id]/enviar-revision — Send acta to review
 export async function POST(
@@ -23,8 +23,16 @@ export async function POST(
     const acta = await prisma.acta.findUnique({
       where: { id: params.id },
       include: {
+        club: true,
         asistencias: {
           include: { usuario: { select: { id: true, nombre: true, email: true, telefono: true } } },
+        },
+        acuerdos: {
+          include: { responsable: { select: { nombre: true } } },
+          orderBy: { orden: 'asc' },
+        },
+        aprobaciones: {
+          include: { usuario: { select: { nombre: true } } },
         },
       },
     });
@@ -39,6 +47,32 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    // --- GENERAR CONTENIDO HTML FORMAL ---
+    const htmlContent = generateActaPDFContent({
+      clubNombre: acta.club.nombre,
+      numero: acta.numero,
+      anio: acta.anio,
+      titulo: acta.titulo,
+      fecha: acta.fechaReunion ? new Date(acta.fechaReunion).toLocaleDateString('es-CL') : '—',
+      lugar: acta.lugarReunion || '—',
+      tipoReunion: acta.tipoReunion || '—',
+      asistentes: acta.asistencias.map(a => ({ nombre: a.usuario.nombre, presente: a.presente })),
+      temas: (acta.contenido as any)?.temas || [],
+      acuerdos: acta.acuerdos.map(a => ({
+        titulo: a.titulo,
+        descripcion: a.descripcion || undefined,
+        responsable: a.responsable?.nombre,
+        fechaCompromiso: a.fechaCompromiso ? new Date(a.fechaCompromiso).toLocaleDateString('es-CL') : undefined,
+        estado: a.estado,
+      })),
+      proximaReunion: acta.proximaReunion || undefined,
+      aprobaciones: acta.aprobaciones.map(ap => ({
+        nombre: ap.usuario.nombre,
+        decision: ap.decision,
+        fecha: new Date(ap.fecha).toLocaleDateString('es-CL'),
+      })),
+    });
 
     // Create shared link with approval permissions
     const token = uuidv4();
@@ -58,6 +92,7 @@ export async function POST(
       data: {
         estado: 'EN_REVISION',
         version: newVersion,
+        contenidoHtml: htmlContent, // <--- Guardamos el HTML generado
       },
     });
 
