@@ -51,12 +51,32 @@ export default function CompartidoPage({ params }: { params: { token: string } }
       return;
     }
     
+    if (!confirm(`¿Estás seguro de que deseas ${decision === 'APRUEBA' ? 'APROBAR' : 'RECHAZAR'} esta acta oficialmente?`)) return;
+
     setEnviando(true);
     try {
-      // In a real scenario, this endpoint should accept tokens.
-      // We will simulate the success for this QA flow.
-      alert(`Has ${decision === 'APRUEBA' ? 'APROBADO' : 'RECHAZADO'} el acta correctamente.`);
-      router.push('/login');
+      const res = await fetch(`/api/compartido/${params.token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'APROBAR',
+          nombre: nombreComentarista,
+          decision: decision,
+          motivo: comentario // Use the comment field as "motivo" if rejecting
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || 'Has firmado el acta correctamente.');
+        router.refresh();
+        window.location.reload(); // Reload to show updated status or lock UI
+      } else {
+        alert(data.error || 'Error al registrar la firma.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión al intentar firmar.');
     } finally {
       setEnviando(false);
     }
@@ -69,8 +89,26 @@ export default function CompartidoPage({ params }: { params: { token: string } }
     }
     setEnviando(true);
     try {
-      alert('Comentario enviado al club.');
-      setComentario('');
+      const res = await fetch(`/api/compartido/${params.token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'COMENTAR',
+          nombre: nombreComentarista,
+          texto: comentario
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || 'Comentario enviado al club.');
+        setComentario('');
+      } else {
+        alert(data.error || 'Error al enviar el comentario.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión.');
     } finally {
       setEnviando(false);
     }
