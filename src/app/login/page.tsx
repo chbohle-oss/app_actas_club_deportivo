@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { formatearRut, validarRut } from '@/lib/utils';
+import { formatearRut } from '@/lib/utils';
 import styles from './login.module.css';
 
 export default function LoginPage() {
@@ -16,9 +16,9 @@ export default function LoginPage() {
   const [form, setForm] = useState({
     nombre: '',
     email: '',
-    rut: '',
     password: '',
     telefono: '',
+    rut: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,11 +37,6 @@ export default function LoginPage() {
 
     let result;
     if (isRegister) {
-      if (!validarRut(form.rut)) {
-        setError('El RUT ingresado no es válido.');
-        setLoading(false);
-        return;
-      }
       result = await register(form);
     } else {
       result = await login(form.email, form.password);
@@ -88,35 +83,35 @@ export default function LoginPage() {
             </button>
           </div>
 
-            <div className="form-group">
-              <label className="form-label">Nombre completo <span className="required">*</span></label>
-              <input
-                type="text"
-                name="nombre"
-                value={form.nombre}
-                onChange={handleChange}
-                className="form-input"
-                placeholder="Juan Pérez"
-                required
-                id="input-nombre"
-              />
-            </div>
-          )}
-
           {isRegister && (
-            <div className="form-group">
-              <label className="form-label">RUT <span className="required">*</span></label>
-              <input
-                type="text"
-                name="rut"
-                value={form.rut}
-                onChange={handleChange}
-                className="form-input"
-                placeholder="12.345.678-9"
-                required
-                id="input-rut"
-              />
-            </div>
+            <>
+              <div className="form-group">
+                <label className="form-label">RUT <span className="required">*</span></label>
+                <input
+                  type="text"
+                  name="rut"
+                  value={form.rut}
+                  onChange={handleChange}
+                  className="form-input"
+                  placeholder="12.345.678-9"
+                  required
+                  id="input-rut"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Nombre completo <span className="required">*</span></label>
+                <input
+                  type="text"
+                  name="nombre"
+                  value={form.nombre}
+                  onChange={handleChange}
+                  className="form-input"
+                  placeholder="Juan Pérez"
+                  required
+                  id="input-nombre"
+                />
+              </div>
+            </>
           )}
 
           <div className="form-group">

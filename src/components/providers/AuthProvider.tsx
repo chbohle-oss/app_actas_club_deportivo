@@ -28,9 +28,9 @@ interface AuthContextType {
 interface RegisterData {
   nombre: string;
   email: string;
-  rut: string;
   password: string;
   telefono?: string;
+  rut: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

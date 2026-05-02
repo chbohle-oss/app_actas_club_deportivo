@@ -3,7 +3,7 @@ import { getAuthUser, requireAuth, requireRole, hashPassword } from '@/lib/auth'
 import { prisma } from '@/lib/prisma';
 import { sendEmail, emailInvitacionClub } from '@/lib/email';
 import { registrarAuditoria } from '@/lib/audit';
-import { getAppBaseUrl, validarRut } from '@/lib/utils';
+import { getAppBaseUrl, validarRut, formatearRut } from '@/lib/utils';
 
 // GET /api/miembros — List club members
 export async function GET(request: NextRequest) {
@@ -57,18 +57,25 @@ export async function POST(request: NextRequest) {
     if (!validarRut(rut)) {
       return NextResponse.json({ error: 'El RUT ingresado no es válido.' }, { status: 400 });
     }
+    
+    const formattedRut = formatearRut(rut);
 
     // 1. Obtener información del club para el email
     const club = await prisma.club.findUnique({
       where: { id: user!.clubId }
     });
 
-    // 2. Verificar si el usuario ya existe
+    // 2. Verificar si el usuario ya existe (por RUT o Email)
     let targetUser = await prisma.usuario.findUnique({
-      where: { email }
+      where: { id: formattedRut }
     });
 
     if (!targetUser) {
+      // Check if email exists with a different RUT
+      const existingEmail = await prisma.usuario.findUnique({ where: { email } });
+      if (existingEmail) {
+        return NextResponse.json({ error: 'El email ya está en uso por otro RUT.' }, { status: 409 });
+      }
       // Crear usuario nuevo con password temporal (luego el usuario debería resetearlo o entrar por link)
       // Usamos un password aleatorio largo por seguridad inicial
       const tempPassword = Math.random().toString(36).slice(-10) + "A1!";
@@ -76,7 +83,7 @@ export async function POST(request: NextRequest) {
       
       targetUser = await prisma.usuario.create({
         data: {
-          id: rut.replace(/\./g, '').replace(/-/g, '').toUpperCase(),
+          id: formattedRut,
           nombre,
           email,
           passwordHash,

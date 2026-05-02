@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { formatearRut, validarRut } from '@/lib/utils';
+import { formatearRut } from '@/lib/utils';
 
 interface Miembro {
   id: string;
@@ -12,7 +12,6 @@ interface Miembro {
     id: string;
     nombre: string;
     email: string;
-    rut: string;
     telefono: string | null;
     rol: string;
   };
@@ -23,13 +22,13 @@ export default function MiembrosPage() {
   const [miembros, setMiembros] = useState<Miembro[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteData, setInviteData] = useState({ nombre: '', email: '', rut: '', rolClub: 'MIEMBRO' });
+  const [inviteData, setInviteData] = useState({ rut: '', nombre: '', email: '', rolClub: 'MIEMBRO' });
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingMiembro, setEditingMiembro] = useState<Miembro | null>(null);
-  const [editData, setEditData] = useState({ nombre: '', email: '', rut: '', telefono: '', rolClub: '', estado: '' });
+  const [editData, setEditData] = useState({ nombre: '', email: '', telefono: '', rolClub: '', estado: '' });
 
   const fetchMiembros = useCallback(async () => {
     if (!token) return;
@@ -56,12 +55,6 @@ export default function MiembrosPage() {
     setSubmitting(true);
     setMessage(null);
 
-    if (!validarRut(inviteData.rut)) {
-      setMessage({ type: 'error', text: 'El RUT ingresado no es válido.' });
-      setSubmitting(false);
-      return;
-    }
-
     try {
       const res = await fetch('/api/miembros', {
         method: 'POST',
@@ -76,7 +69,7 @@ export default function MiembrosPage() {
 
       if (res.ok) {
         setMessage({ type: 'success', text: '¡Invitación enviada con éxito!' });
-        setInviteData({ nombre: '', email: '', rut: '', rolClub: 'MIEMBRO' });
+        setInviteData({ rut: '', nombre: '', email: '', rolClub: 'MIEMBRO' });
         setTimeout(() => setShowInviteModal(false), 2000);
         fetchMiembros();
       } else {
@@ -94,7 +87,6 @@ export default function MiembrosPage() {
     setEditData({
       nombre: m.usuario.nombre,
       email: m.usuario.email,
-      rut: m.usuario.id,
       telefono: m.usuario.telefono || '',
       rolClub: m.usuario.rol,
       estado: m.estado
@@ -177,10 +169,7 @@ export default function MiembrosPage() {
                           }}>
                             {m.usuario.nombre.charAt(0)}
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontWeight: '500' }}>{m.usuario.nombre}</span>
-                            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>RUT: {formatearRut(m.usuario.id)}</span>
-                          </div>
+                          <span style={{ fontWeight: '500' }}>{m.usuario.nombre}</span>
                         </div>
                       </td>
                       <td style={{ padding: 'var(--space-4)' }}>
@@ -226,6 +215,17 @@ export default function MiembrosPage() {
               </div>
               <form onSubmit={handleInvite} className="form-group">
                 <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <label className="form-label">RUT</label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    required 
+                    value={inviteData.rut}
+                    onChange={e => setInviteData({...inviteData, rut: formatearRut(e.target.value)})}
+                    placeholder="12.345.678-9"
+                  />
+                </div>
+                <div style={{ marginBottom: 'var(--space-4)' }}>
                   <label className="form-label">Nombre completo</label>
                   <input 
                     type="text" 
@@ -245,17 +245,6 @@ export default function MiembrosPage() {
                     value={inviteData.email}
                     onChange={e => setInviteData({...inviteData, email: e.target.value})}
                     placeholder="correo@ejemplo.com"
-                  />
-                </div>
-                <div style={{ marginBottom: 'var(--space-4)' }}>
-                  <label className="form-label">RUT</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    required 
-                    value={inviteData.rut}
-                    onChange={e => setInviteData({...inviteData, rut: formatearRut(e.target.value)})}
-                    placeholder="12.345.678-9"
                   />
                 </div>
                 <div style={{ marginBottom: 'var(--space-4)' }}>
@@ -315,15 +304,6 @@ export default function MiembrosPage() {
                     required 
                     value={editData.email}
                     onChange={e => setEditData({...editData, email: e.target.value})}
-                  />
-                </div>
-                <div style={{ marginBottom: 'var(--space-4)' }}>
-                  <label className="form-label">RUT (No editable)</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    disabled 
-                    value={formatearRut(editData.rut)}
                   />
                 </div>
                 <div style={{ marginBottom: 'var(--space-4)' }}>

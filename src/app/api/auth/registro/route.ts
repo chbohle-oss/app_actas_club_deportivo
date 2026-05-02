@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hashPassword, createToken, createRefreshToken, TokenPayload } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { registrarAuditoria } from '@/lib/audit';
-import { validarRut } from '@/lib/utils';
+import { validarRut, formatearRut } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     if (!nombre || !email || !password || !rut) {
       return NextResponse.json(
-        { error: 'Nombre, email, contraseña y RUT son requeridos.' },
+        { error: 'Nombre, email, RUT y contraseña son requeridos.' },
         { status: 400 }
       );
     }
@@ -30,11 +30,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check existing user
-    const existing = await prisma.usuario.findUnique({ where: { email } });
-    if (existing) {
+    // Check existing user by email
+    const existingEmail = await prisma.usuario.findUnique({ where: { email } });
+    if (existingEmail) {
       return NextResponse.json(
         { error: 'Ya existe una cuenta con ese email.' },
+        { status: 409 }
+      );
+    }
+
+    const formattedRut = formatearRut(rut);
+
+    // Check existing user by RUT (ID)
+    const existingRut = await prisma.usuario.findUnique({ where: { id: formattedRut } });
+    if (existingRut) {
+      return NextResponse.json(
+        { error: 'Ya existe una cuenta con ese RUT.' },
         { status: 409 }
       );
     }
@@ -43,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.usuario.create({
       data: {
-        id: rut.replace(/\./g, '').replace(/-/g, '').toUpperCase(), // Guardar RUT limpio como ID
+        id: formattedRut,
         nombre,
         email,
         telefono: telefono || null,
