@@ -27,6 +27,7 @@ async function main() {
 
   const admin = await prisma.usuario.create({
     data: {
+      id: '11.111.111-1',
       nombre: 'Carlos Administrador',
       email: 'admin@actasclub.com',
       telefono: '+56912345678',
@@ -37,6 +38,7 @@ async function main() {
 
   const secretario = await prisma.usuario.create({
     data: {
+      id: '22.222.222-2',
       nombre: 'María Secretaria',
       email: 'secretaria@actasclub.com',
       telefono: '+56987654321',
@@ -47,6 +49,7 @@ async function main() {
 
   const miembro1 = await prisma.usuario.create({
     data: {
+      id: '33.333.333-3',
       nombre: 'Juan Jugador',
       email: 'juan@actasclub.com',
       telefono: '+56911111111',
@@ -57,6 +60,7 @@ async function main() {
 
   const miembro2 = await prisma.usuario.create({
     data: {
+      id: '44.444.444-4',
       nombre: 'Ana Suplente',
       email: 'ana@actasclub.com',
       telefono: '+56922222222',
@@ -67,6 +71,7 @@ async function main() {
 
   const miembro3 = await prisma.usuario.create({
     data: {
+      id: '55.555.555-5',
       nombre: 'Pedro Entrenador',
       email: 'pedro@actasclub.com',
       telefono: '+56933333333',
