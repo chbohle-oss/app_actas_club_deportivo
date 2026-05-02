@@ -6,6 +6,24 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
+  // Clear existing data
+  console.log('🧹 Clearing existing data...');
+  await prisma.auditoriaLog.deleteMany();
+  await prisma.notificacionLog.deleteMany();
+  await prisma.adjunto.deleteMany();
+  await prisma.linkCompartido.deleteMany();
+  await prisma.aprobacion.deleteMany();
+  await prisma.comentario.deleteMany();
+  await prisma.acuerdo.deleteMany();
+  await prisma.asistencia.deleteMany();
+  await prisma.acta.deleteMany();
+  await prisma.convocado.deleteMany();
+  await prisma.reunion.deleteMany();
+  await prisma.miembroClub.deleteMany();
+  await prisma.usuario.deleteMany();
+  await prisma.club.deleteMany();
+  console.log('✅ Existing data cleared');
+
   // Create Club
   const club = await prisma.club.create({
     data: {
